@@ -1,0 +1,59 @@
+--- a/src/expand.c
++++ b/src/expand.c
+@@ -642,7 +642,7 @@
+   { "qualify_domain",      vtype_stringptr,   &qualify_domain_sender },
+   { "qualify_recipient",   vtype_stringptr,   &qualify_domain_recipient },
+   { "queue_name",          vtype_stringptr,   &queue_name },
+-  { "queue_size",          vtype_string_func, (void *) &fn_queue_size },
++  { "queue_size2",          vtype_string_func, (void *) &fn_queue_size },
+   { "rcpt_count",          vtype_int,         &rcpt_count },
+   { "rcpt_defer_count",    vtype_int,         &rcpt_defer_count },
+   { "rcpt_fail_count",     vtype_int,         &rcpt_fail_count },
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -978,7 +978,7 @@
+ }
+ 
+ 
+-#define QUEUE_SIZE_AGE 60	/* update rate for queue_size */
++#define QUEUE_SIZE_AGE 60	/* update rate for queue_size2 */
+ 
+ unsigned
+ queue_count_cached(void)
+@@ -986,10 +986,10 @@
+ time_t now;
+ if ((now = time(NULL)) >= queue_size_next)
+   {
+-  queue_size = queue_count();
++  queue_size2 = queue_count();
+   queue_size_next = now + (f.running_in_test_harness ? 3 : QUEUE_SIZE_AGE);
+   }
+-return queue_size;
++return queue_size2;
+ }
+ 
+ /************************************************
+--- a/src/globals.c
++++ b/src/globals.c
+@@ -1157,7 +1157,7 @@
+ uschar *queue_run_max          = US"5";
+ pid_t   queue_run_pid          = (pid_t)0;
+ int     queue_run_pipe         = -1;
+-unsigned queue_size            = 0;
++unsigned queue_size2            = 0;
+ time_t  queue_size_next        = 0;
+ uschar *queue_smtp_domains     = NULL;
+ 
+--- a/src/globals.h
++++ b/src/globals.h
+@@ -823,8 +823,8 @@
+ extern BOOL    queue_run_in_order;     /* (obsolete) As opposed to random */
+ extern const uschar * queue_run_order; /* undef/old/random/new-first */
+ extern uschar *queue_run_max;          /* Max queue runners */
+-extern unsigned queue_size;            /* items in queue */
+-extern time_t  queue_size_next;        /* next time to evaluate queue_size */
++extern unsigned queue_size2;            /* items in queue */
++extern time_t  queue_size_next;        /* next time to evaluate queue_size2 */
+ extern uschar *queue_smtp_domains;     /* Ditto, for these domains */
+ 
+ extern unsigned int random_seed;       /* Seed for random numbers */

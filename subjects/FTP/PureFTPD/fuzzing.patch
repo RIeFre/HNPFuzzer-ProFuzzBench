@@ -1,5 +1,15 @@
+# PureFTPD fuzzing.patch for the persistent-mode (fork preserved) build.
+#
+# Identical to fuzzing_old.patch except that the last hunk is dropped: that
+# hunk rewrites accept_client()'s `child = fork();` into `child = 0;`, which
+# makes the server handle every session in the parent. profuzzbench-new carries
+# it because AFLNet restarts the server per input; HNPFuzzer's persistent mode
+# needs the fork to survive, so this variant keeps it.
+#
+# fuzzing_old.patch (the no-fork variant) is what the -hnpfuzzer-nofork image
+# is built with -- see profuzzbench_build_HNPFuzzer.sh.
 diff --git a/src/alt_arc4random.c b/src/alt_arc4random.c
-index 81bdfc7..3b4a2e8 100644
+index 4d5cc12..ed12af8 100644
 --- a/src/alt_arc4random.c
 +++ b/src/alt_arc4random.c
 @@ -137,6 +137,9 @@ static int random_dev_open(void)
@@ -23,10 +33,10 @@ index 81bdfc7..3b4a2e8 100644
      size_t         off;
      size_t         remaining;
 diff --git a/src/ftpd.c b/src/ftpd.c
-index 60b95b6..a880351 100644
+index 6f1f504..7f38379 100644
 --- a/src/ftpd.c
 +++ b/src/ftpd.c
-@@ -4623,7 +4623,7 @@ static void fixlimits(void)
+@@ -4632,7 +4632,7 @@ static void fixlimits(void)
      lim.rlim_max = lim.rlim_cur = MAX_CPU_TIME;
      setrlimit(RLIMIT_CPU, &lim);
      lim.rlim_max = lim.rlim_cur = MAX_DATA_SIZE;
@@ -35,17 +45,17 @@ index 60b95b6..a880351 100644
  # ifndef DEBUG
      lim.rlim_max = lim.rlim_cur = 0;
      setrlimit(RLIMIT_CORE, &lim);
-@@ -4846,8 +4846,7 @@ static void fill_atomic_prefix(void)
+@@ -4855,8 +4855,7 @@ static void fill_atomic_prefix(void)
               ATOMIC_PREFIX_PREFIX,
               (unsigned long) session_start_time,
               (unsigned int) serverport,
 -             (unsigned long) getpid(),
 -             zrand());
-+             0,0);
++             0, 0);
      if ((atomic_prefix = strdup(tmp_atomic_prefix)) == NULL) {
          die_mem();
      }
-@@ -4860,7 +4859,7 @@ static void doit(void)
+@@ -4869,7 +4868,7 @@ static void doit(void)
      int display_banner = 1;
  
      client_init_reply_buf();
@@ -54,7 +64,7 @@ index 60b95b6..a880351 100644
      fixlimits();
  #ifdef F_SETOWN
      fcntl(clientfd, F_SETOWN, getpid());
-@@ -4985,13 +4984,7 @@ static void doit(void)
+@@ -4994,13 +4993,7 @@ static void doit(void)
  #endif
      /* Back to the client - Get the 5 min load average */
      {

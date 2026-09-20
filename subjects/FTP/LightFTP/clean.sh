@@ -1,5 +1,3 @@
 #!/bin/bash
 
-rm -rf ~/ftpshare/*
-
-rm ~/fftplog
+rm -rf ~/ftpshare/* ~/fftplog

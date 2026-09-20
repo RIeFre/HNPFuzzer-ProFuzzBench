@@ -1,0 +1,29 @@
+diff --git a/dcmqrdb/apps/dcmqrscp.cc b/dcmqrdb/apps/dcmqrscp.cc
+--- a/dcmqrdb/apps/dcmqrscp.cc	2026-09-11 22:35:06.260633030 +0800
++++ b/dcmqrdb/apps/dcmqrscp.cc	2026-09-11 22:35:06.278633170 +0800
+@@ -43,6 +43,8 @@
+ #endif
+ END_EXTERN_C
+ 
++#include <signal.h>
++
+ #include "dcmtk/ofstd/ofconapp.h"
+ #include "dcmtk/dcmnet/dicom.h"
+ #include "dcmtk/dcmnet/dimse.h"
+@@ -103,9 +105,16 @@
+   }
+ }
+ 
++void sig_handler(int signo) {
++  if (signo == SIGUSR1)
++    exit(0);
++}
++
+ int
+ main(int argc, char *argv[])
+ {
++
++  signal(SIGUSR1, sig_handler);
+   OFString opt_configFileName = "./dcmqrscp.cfg";
+   OFCondition cond = EC_Normal;
+   OFCmdUnsignedInt overridePort = 0;

@@ -11,6 +11,8 @@ strstr() {
 }
 
 #Commands for afl-based fuzzers (e.g., aflnet, aflnwe)
+#Commands for afl-based fuzzers (e.g., aflnet, aflnwe) -- HNPFuzzer carries no
+#"afl" substring, so it needs the explicit test.
 if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
 
   # Run fuzzer-specific commands (if any)
@@ -24,11 +26,17 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #Step-1. Do Fuzzing
   #Move to fuzzing folder
   cd $WORKDIR
+  mkdir $OUTDIR
   if $(strstr $FUZZER "HNPFuzzer"); then
-    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/20220 $OPTIONS ./${TARGET_DIR}/tests/dtls-server
+    # HNPFuzzer hands the message buffers to the target over shared
+    # memory (sock2shm.so is LD_PRELOAD-ed into it), which is what lets
+    # a resident server be reused across test cases.
+    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/20220 $OPTIONS ./${TARGET_DIR}/tests/dtls-server > ${OUTDIR}/fuzzing.out 2>&1
   else
-    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/20220 $OPTIONS ./${TARGET_DIR}/tests/dtls-server
+    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/20220 $OPTIONS ./${TARGET_DIR}/tests/dtls-server > ${OUTDIR}/fuzzing.out 2>&1
   fi
+
+
   STATUS=$?
 
   #Step-2. Collect code coverage over time
@@ -39,12 +47,12 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
   if [ $FUZZER == "aflnwe" ]; then
-    cov_script ${WORKDIR}/${OUTDIR}/ 20220 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 0
+    cov_script ${WORKDIR}/${OUTDIR}/ 20220 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 0 > ${WORKDIR}/${OUTDIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${OUTDIR}/ 20220 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 1
+    cov_script ${WORKDIR}/${OUTDIR}/ 20220 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 1 > ${WORKDIR}/${OUTDIR}/cov.out 2>&1
   fi
 
-  gcovr -r $WORKDIR/tinydtls-gcov --html --html-details -o index.html
+  gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r $WORKDIR/tinydtls-gcov --html --html-details -o index.html
   mkdir ${WORKDIR}/${OUTDIR}/cov_html/
   cp *.html ${WORKDIR}/${OUTDIR}/cov_html/
 

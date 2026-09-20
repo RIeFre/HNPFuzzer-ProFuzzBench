@@ -1,5 +1,4 @@
-FROM lightftp
-
+FROM hnp-lightftp
 # Import environment variable to pass as parameter to make (e.g., to make parallel builds with -j)
 ARG MAKE_OPT
 
@@ -21,9 +20,9 @@ ENV PATH=${STATEAFL}:${PATH}
 
 # Dedicated instrumented version for StateAFL
 RUN cd $WORKDIR && \
-    git clone https://github.com/hfiref0x/LightFTP.git LightFTP-stateafl && \
+    git clone --depth 1 --branch v2.3.1 https://github.com/hfiref0x/LightFTP.git LightFTP-stateafl && \
     cd LightFTP-stateafl && \
-    git checkout 5980ea1 && \
+    test "$(git rev-parse HEAD)" = "9a6128d06e08919e7a1731a88578a5d1506a947b" && \
     patch -p1 < ${WORKDIR}/fuzzing.patch && \
     cd Source/Release && \
     CC=${STATEAFL}/afl-clang-fast make clean all $MAKE_OPT

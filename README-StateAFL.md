@@ -13,8 +13,8 @@ To build a target for StateAFL:
 ```bash
 cd $PFBENCH
 cd subjects/FTP/LightFTP
-docker build . -t lightftp
-docker build . -f Dockerfile-stateafl -t lightftp-stateafl
+docker build . -t hnp-lightftp
+docker build . -f Dockerfile-stateafl -t hnp-lightftp-stateafl
 ```
 
 To build all targets for all fuzzers, you can run the script [profuzzbench_build_all.sh](scripts/execution/profuzzbench_build_all.sh). To run the fuzzers on all targets, you can use the script [profuzzbench_exec_all.sh](scripts/execution/profuzzbench_exec_all.sh).

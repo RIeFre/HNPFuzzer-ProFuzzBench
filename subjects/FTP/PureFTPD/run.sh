@@ -12,6 +12,8 @@ strstr() {
 }
 
 #Commands for afl-based fuzzers (e.g., aflnet, aflnwe)
+#Commands for afl-based fuzzers (e.g., aflnet, aflnwe) -- HNPFuzzer carries no
+#"afl" substring, so it needs the explicit test.
 if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
 
   # Run fuzzer-specific commands (if any)
@@ -25,12 +27,17 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #Step-1. Do Fuzzing
   #Move to fuzzing folder
   cd $WORKDIR/${TARGET_DIR}
+  mkdir $OUTDIR
   if $(strstr $FUZZER "HNPFuzzer"); then
-    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -x ${WORKDIR}/ftp.dict -N tcp://127.0.0.1/21 $OPTIONS -c ${WORKDIR}/clean src/pure-ftpd -A
+    # HNPFuzzer hands the message buffers to the target over shared
+    # memory (sock2shm.so is LD_PRELOAD-ed into it), which is what lets
+    # a resident server be reused across test cases.
+    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -x ${WORKDIR}/ftp.dict -N tcp://127.0.0.1/21 $OPTIONS -c ${WORKDIR}/clean src/pure-ftpd -A -P 127.0.0.1 -4 > ${OUTDIR}/fuzzing.out 2>&1
   else
-    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -x ${WORKDIR}/ftp.dict -N tcp://127.0.0.1/21 $OPTIONS -c ${WORKDIR}/clean src/pure-ftpd -A
+    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -x ${WORKDIR}/ftp.dict -N tcp://127.0.0.1/21 $OPTIONS -c ${WORKDIR}/clean src/pure-ftpd -A -P 127.0.0.1 -4 > ${OUTDIR}/fuzzing.out 2>&1
   fi
-  
+
+
   STATUS=$?
 
   #Step-2. Collect code coverage over time
@@ -41,12 +48,12 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
   if [ $FUZZER = "aflnwe" ]; then
-    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 21 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 0
+    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 21 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 0 > ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 21 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 1
+    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 21 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 1 > ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov.out 2>&1
   fi
 
-  gcovr -r . --html --html-details -o index.html
+  gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r . --html --html-details -o index.html
   mkdir ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_html/
   cp *.html ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_html/
 

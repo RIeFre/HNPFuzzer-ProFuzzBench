@@ -1,8 +1,8 @@
 diff --git a/src/pool.c b/src/pool.c
-index 2cdfafa..a3267ff 100644
+index 58f3f7087..be87c241b 100644
 --- a/src/pool.c
 +++ b/src/pool.c
-@@ -408,6 +408,9 @@ const char *pr_pool_get_tag(pool *p) {
+@@ -466,6 +466,9 @@ const char *pr_pool_get_tag(pool *p) {
  
  /* Release the entire free block list */
  static void pool_release_free_block_list(void) {
@@ -12,7 +12,7 @@ index 2cdfafa..a3267ff 100644
    union block_hdr *blok = NULL, *next = NULL;
  
    pr_alarms_block();
-@@ -421,10 +424,12 @@ static void pool_release_free_block_list(void) {
+@@ -479,10 +482,12 @@ static void pool_release_free_block_list(void) {
    pr_alarms_unblock();
  }
  
@@ -21,16 +21,15 @@ index 2cdfafa..a3267ff 100644
    union block_hdr *blok;
    pool *new_pool;
  
-+/*
++  /*
    pr_alarms_block();
  
    blok = new_block(0, FALSE);
-@@ -449,12 +454,18 @@ struct pool_rec *make_sub_pool(struct pool_rec *p) {
+@@ -508,12 +513,17 @@ struct pool_rec *make_sub_pool(struct pool_rec *p) {
    pr_alarms_unblock();
  
    return new_pool;
-+*/
-+
++  */
 +  return malloc(sizeof(struct pool_rec));
  }
  
@@ -38,24 +37,23 @@ index 2cdfafa..a3267ff 100644
 +struct pool_rec *
 +__attribute__ ((noinline))
 +pr_pool_create_sz(struct pool_rec *p, size_t sz) {
-+
    union block_hdr *blok;
    pool *new_pool;
--
-+/*
+ 
++  /*
    pr_alarms_block();
  
    blok = new_block(sz + POOL_HDR_BYTES, TRUE);
-@@ -479,6 +490,8 @@ struct pool_rec *pr_pool_create_sz(struct pool_rec *p, size_t sz) {
+@@ -539,6 +549,8 @@ struct pool_rec *pr_pool_create_sz(struct pool_rec *p, size_t sz) {
    pr_alarms_unblock();
  
    return new_pool;
-+*/
++  */
 +  return malloc(sizeof(struct pool_rec));
  }
  
  /* Initialize the pool system by creating the base permanent_pool. */
-@@ -499,6 +512,8 @@ void free_pools(void) {
+@@ -559,6 +571,8 @@ void free_pools(void) {
  
  static void clear_pool(struct pool_rec *p) {
  
@@ -64,7 +62,7 @@ index 2cdfafa..a3267ff 100644
    /* Sanity check. */
    if (p == NULL) {
      return;
-@@ -528,6 +543,9 @@ static void clear_pool(struct pool_rec *p) {
+@@ -588,6 +602,9 @@ static void clear_pool(struct pool_rec *p) {
  }
  
  void destroy_pool(pool *p) {
@@ -74,7 +72,7 @@ index 2cdfafa..a3267ff 100644
    if (p == NULL) {
      return;
    }
-@@ -615,12 +633,16 @@ static void *alloc_pool(struct pool_rec *p, size_t reqsz, int exact) {
+@@ -680,12 +697,16 @@ static void *alloc_pool(struct pool_rec *p, size_t reqsz, int exact) {
    return (void *) first_avail;
  }
  
@@ -95,7 +93,7 @@ index 2cdfafa..a3267ff 100644
  
  void *pcalloc(struct pool_rec *p, size_t sz) {
 diff --git a/src/table.c b/src/table.c
-index fd4e72e..46e3e83 100644
+index 301921cc9..bc33354b7 100644
 --- a/src/table.c
 +++ b/src/table.c
 @@ -385,6 +385,8 @@ static unsigned int tab_get_seed(void) {

@@ -27,9 +27,7 @@ for f in $(echo $folder/$testdir/id* | grep -v "*"); do
   #terminate running server(s)
   pkill proftpd
   
-
-
-
+  ${WORKDIR}/clean
   $replayer $f FTP $pno 1 >/dev/null 2>&1 &
   timeout -k 0 --preserve-status 3s ./proftpd -n -c ${WORKDIR}/basic.conf -X
 

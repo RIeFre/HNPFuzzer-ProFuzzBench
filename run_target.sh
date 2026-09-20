@@ -102,7 +102,7 @@ case $target in
 			if [[ $Fuzzer != "HNPFuzzer" ]]; then
 				unset Mode
 			fi
-			$PFBENCH/scripts/execution/profuzzbench_exec_common.sh dnsmasq${image_suffix} $reps ${output}/results-dnsmasq-${Fuzzer}${Mode}${idx} ${Fuzzer} out-dnsmasq-${Fuzzer} "${options}" ${seconds} 5 &
+			$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-dnsmasq${image_suffix} $reps ${output}/results-dnsmasq-${Fuzzer}${Mode}${idx} ${Fuzzer} out-dnsmasq-${Fuzzer} "${options}" ${seconds} 5 &
 		else
 			echo "Persistent Mode does not support protocols based on UDP"
 			exit 0
@@ -124,7 +124,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh dcmtk${image_suffix} $reps ${output}/results-dcmtk-${Fuzzer}${Mode}${idx} ${Fuzzer} out-dcmtk-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-dcmtk${image_suffix} $reps ${output}/results-dcmtk-${Fuzzer}${Mode}${idx} ${Fuzzer} out-dcmtk-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"tinydtls" )
@@ -151,7 +151,7 @@ case $target in
 			if [[ $Fuzzer != "HNPFuzzer" ]]; then
 				unset Mode
 			fi
-			$PFBENCH/scripts/execution/profuzzbench_exec_common.sh tinydtls${image_suffix} $reps ${output}/results-tinydtls-${Fuzzer}${Mode}${idx} ${Fuzzer} out-tinydtls-${Fuzzer} "${options}" ${seconds} 5 &
+			$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-tinydtls${image_suffix} $reps ${output}/results-tinydtls-${Fuzzer}${Mode}${idx} ${Fuzzer} out-tinydtls-${Fuzzer} "${options}" ${seconds} 5 &
 		else
 			echo "Persistent Mode does not support protocols based on UDP"
 			exit 0
@@ -173,7 +173,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh forked-daapd${image_suffix} $reps ${output}/results-forked-daapd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-forked-daapd-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-forked-daapd${image_suffix} $reps ${output}/results-forked-daapd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-forked-daapd-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 	
 	"lightftp" )
@@ -192,7 +192,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh lightftp${image_suffix} $reps ${output}/results-lightftp-${Fuzzer}${Mode}${idx} ${Fuzzer} out-lightftp-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-lightftp${image_suffix} $reps ${output}/results-lightftp-${Fuzzer}${Mode}${idx} ${Fuzzer} out-lightftp-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"pureftpd" )
@@ -219,7 +219,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh pureftpd${image_suffix} $reps ${output}/results-pure-ftpd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-pure-ftpd-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-pureftpd${image_suffix} $reps ${output}/results-pure-ftpd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-pure-ftpd-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"proftpd" )
@@ -238,7 +238,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh proftpd${image_suffix} $reps ${output}/results-proftpd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-proftpd-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-proftpd${image_suffix} $reps ${output}/results-proftpd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-proftpd-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"bftpd" )
@@ -265,7 +265,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh bftpd${image_suffix} $reps ${output}/results-bftpd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-bftpd-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-bftpd${image_suffix} $reps ${output}/results-bftpd-${Fuzzer}${Mode}${idx} ${Fuzzer} out-bftpd-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 	
 	"live555" )
@@ -284,7 +284,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh live555${image_suffix} $reps ${output}/results-live555-${Fuzzer}${Mode}${idx} ${Fuzzer} out-live555-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-live555${image_suffix} $reps ${output}/results-live555-${Fuzzer}${Mode}${idx} ${Fuzzer} out-live555-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"kamailio" )
@@ -314,7 +314,7 @@ case $target in
 			if [[ $Fuzzer != "HNPFuzzer" ]]; then
 				unset Mode
 			fi
-			$PFBENCH/scripts/execution/profuzzbench_exec_common.sh kamailio${image_suffix} $reps ${output}/results-kamailio-${Fuzzer}${Mode}${idx} ${Fuzzer} out-kamailio-${Fuzzer} "${options}" ${seconds} 5 &
+			$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-kamailio${image_suffix} $reps ${output}/results-kamailio-${Fuzzer}${Mode}${idx} ${Fuzzer} out-kamailio-${Fuzzer} "${options}" ${seconds} 5 &
 		else
 			echo "Persistent Mode does not support protocols based on UDP"
 			exit 0
@@ -336,7 +336,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh exim${image_suffix} $reps ${output}/results-exim-${Fuzzer}${Mode}${idx} ${Fuzzer} out-exim-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-exim${image_suffix} $reps ${output}/results-exim-${Fuzzer}${Mode}${idx} ${Fuzzer} out-exim-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"openssh" )
@@ -360,7 +360,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh openssh${image_suffix} $reps ${output}/results-openssh-${Fuzzer}${Mode}${idx} ${Fuzzer} out-openssh-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-openssh${image_suffix} $reps ${output}/results-openssh-${Fuzzer}${Mode}${idx} ${Fuzzer} out-openssh-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	"openssl" )
@@ -379,7 +379,7 @@ case $target in
 		if [[ $Fuzzer != "HNPFuzzer" ]]; then
 			unset Mode
 		fi
-		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh openssl${image_suffix} $reps ${output}/results-openssl-${Fuzzer}${Mode}${idx} ${Fuzzer} out-openssl-${Fuzzer} "${options}" ${seconds} 5 &
+		$PFBENCH/scripts/execution/profuzzbench_exec_common.sh hnp-openssl${image_suffix} $reps ${output}/results-openssl-${Fuzzer}${Mode}${idx} ${Fuzzer} out-openssl-${Fuzzer} "${options}" ${seconds} 5 &
 		;;
 
 	* )

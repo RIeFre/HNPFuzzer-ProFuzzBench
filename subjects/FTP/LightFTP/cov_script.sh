@@ -45,7 +45,7 @@ for f in $(echo $folder/$testdir/*.raw); do
 
   ftpclean  
   $replayer $f FTP $pno 1 > /dev/null 2>&1 &
-  timeout -k 0 -s SIGUSR1 3s ./fftp fftp.conf $pno > /dev/null 2>&1
+  timeout -k 0 -s SIGUSR1 3s ./fftp ${WORKDIR}/fftp.conf > /dev/null 2>&1
   
   wait
   cov_data=$(gcovr -r .. -s | grep "[lb][a-z]*:")
@@ -67,7 +67,7 @@ for f in $(echo $folder/$testdir/id*); do
   
   ftpclean  
   $replayer $f FTP $pno 1 > /dev/null 2>&1 &
-  timeout -k 0 -s SIGUSR1 3s ./fftp fftp.conf $pno > /dev/null 2>&1
+  timeout -k 0 -s SIGUSR1 3s ./fftp ${WORKDIR}/fftp.conf > /dev/null 2>&1
 
   wait
   count=$(expr $count + 1)

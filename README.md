@@ -2,6 +2,34 @@
 
 HNPFuzzer-ProFuzzBench provides automation scripts for fuzzing the 13 targets in ProFuzzBench with 4 fuzzers, i.e., [HNPFuzzer](https://github.com/veltavid/HNPFuzzer.git), [AFLnwe](https://github.com/aflnet/aflnwe), [AFLNet](https://github.com/aflnet/aflnet), and [StateAFL](https://github.com/stateafl/stateafl).
 
+## Base image
+
+Every subject image is built from the **same prefix**, which is kept byte-identical
+to profuzzbench-new's `ubuntu:22.04` prefix so Docker can reuse those layers:
+
+| | |
+|---|---|
+| OS | `ubuntu:22.04` |
+| Compiler | clang-12 / llvm-12-dev (an AFLNet-derived LLVM pass only builds against LLVM 12/13) |
+| Coverage | `gcovr 8.6` (pinned) |
+| Fuzzer | HNPFuzzer, built with `CFLAGS="-O3 -funroll-loops -fcommon"` — see the note in each Dockerfile |
+
+Two things about this benchmark differ from profuzzbench-new on purpose:
+
+- **No ASAN.** `AFL_USE_ASAN=1` and `-fsanitize=address` are stripped from every
+  target build. `ASAN_OPTIONS` is still exported for compatibility, but nothing
+  is compiled with the sanitizer, so exec/s and crash-detection power are not
+  comparable with profuzzbench-new's numbers.
+- **Images are prefixed `hnp-`** (`hnp-lightftp`, `hnp-lightftp-hnpfuzzer`,
+  `hnp-lightftp-stateafl`, …) so they cannot collide with the bare-named images
+  of a profuzzbench/profuzzbench-new checkout on the same host.
+
+The 13 targets are pinned to the same upstream releases profuzzbench-new uses
+(ProFTPD 1.3.9d, dnsmasq 2.93, Exim 4.100, OpenSSL 4.0.2, DCMTK 3.7.0,
+Kamailio 6.1.4, OpenSSH V_9_7_P1, OwnTone 29.3, …); each clone carries a
+`test "$(git rev-parse HEAD)" = …` guard so the build fails loudly if the pin
+ever stops resolving.
+
 ## Set up environmental variables
 
 ```bash

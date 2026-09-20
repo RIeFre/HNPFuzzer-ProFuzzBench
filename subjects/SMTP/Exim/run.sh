@@ -12,6 +12,8 @@ strstr() {
 }
 
 #Commands for afl-based fuzzers (e.g., aflnet, aflnwe)
+#Commands for afl-based fuzzers (e.g., aflnet, aflnwe) -- HNPFuzzer carries no
+#"afl" substring, so it needs the explicit test.
 if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
 
   TARGET_DIR=${TARGET_DIR:-"exim"}
@@ -25,12 +27,17 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #Step-1. Do Fuzzing
   #Move to fuzzing folder
   cd $WORKDIR/${TARGET_DIR}
-  cp ./src/build-Linux-x86_64/exim /usr/exim/bin/exim
+  cp ./build-Linux-x86_64/exim /usr/exim/bin/exim 2>/dev/null || sudo cp ./build-Linux-x86_64/exim /usr/exim/bin/exim
+  mkdir $OUTDIR
   if $(strstr $FUZZER "HNPFuzzer"); then
-    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/smtp.dict -o $OUTDIR -N tcp://127.0.0.1/25 $OPTIONS -c ${WORKDIR}/clean exim -bd -d -oX 25 -oP /var/lock/exim.pid
+    # HNPFuzzer hands the message buffers to the target over shared
+    # memory (sock2shm.so is LD_PRELOAD-ed into it), which is what lets
+    # a resident server be reused across test cases.
+    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/smtp.dict -o $OUTDIR -N tcp://127.0.0.1/25 $OPTIONS -c ${WORKDIR}/clean exim -bd -d -oX 25 > ${OUTDIR}/fuzzing.out 2>&1
   else
-    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/smtp.dict -o $OUTDIR -N tcp://127.0.0.1/25 $OPTIONS -c ${WORKDIR}/clean exim -bd -d -oX 25 -oP /var/lock/exim.pid
+    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/smtp.dict -o $OUTDIR -N tcp://127.0.0.1/25 $OPTIONS -c ${WORKDIR}/clean exim -bd -d -oX 25 > ${OUTDIR}/fuzzing.out 2>&1
   fi
+
 
   STATUS=$?
 
@@ -41,18 +48,18 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #Step-2. Collect code coverage over time
   #Move to gcov folder
   cd $WORKDIR/exim-gcov
-  cp ./src/build-Linux-x86_64/exim /usr/exim/bin/exim
+  cp ./build-Linux-x86_64/exim /usr/exim/bin/exim 2>/dev/null || sudo cp ./build-Linux-x86_64/exim /usr/exim/bin/exim
 
   #The last argument passed to cov_script should be 0 if the fuzzer is afl/nwe and it should be 1 if the fuzzer is based on aflnet
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
   if [ $FUZZER = "aflnwe" ]; then
-    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 25 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 0
+    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 25 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 0 > ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 25 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 1
+    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 25 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 1 > ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov.out 2>&1
   fi
 
-  gcovr -r . --html --html-details -o index.html
+  gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r . --html --html-details -o index.html
   mkdir ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_html/
   cp *.html ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_html/
 

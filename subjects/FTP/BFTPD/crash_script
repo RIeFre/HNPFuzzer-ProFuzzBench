@@ -27,6 +27,7 @@ for f in $(echo $folder/$testdir/id* | grep -v "*"); do
   #terminate running server(s)
   pkill bftpd
   
+  ${WORKDIR}/clean
   $replayer $f FTP $pno 1 >/dev/null 2>&1 &
   timeout -k 0 --preserve-status 3s ./bftpd -D -c ${WORKDIR}/basic.conf
 

@@ -1,0 +1,33 @@
+--- a/exim_monitor/em_menu.c
++++ b/exim_monitor/em_menu.c
+@@ -369,7 +369,7 @@
+   close(1);
+   close(2);
+   close(pipe_fd[0]);
+-  _exit(0);
++  exit(0);
+   }
+ 
+ /* Main process - set up an item for the main ticker to watch. */
+--- a/src/exim.c
++++ b/src/exim.c
+@@ -859,7 +859,19 @@
+   debug_printf(">>>>>>>>>>>>>>>> Exim pid=" PID_T_FMT " (%s) terminating with rc=%d "
+     ">>>>>>>>>>>>>>>>\n",
+     getpid(), process_purpose, rc);
++
++  /* Coverage build only (this patch is not applied to the fuzzing build):
++  _exit() does not run atexit handlers or static destructors, so libgcov never
++  writes this process' counters. Exim handles every SMTP session in a forked
++  child (daemon.c "if (pid == 0)") that leaves through this function after
++  smtp_start_session()/receive_msg()/deliver_message(), so without an explicit
++  dump the coverage report only ever saw the listening daemon -- startup and
++  the accept loop. */
++  {
++  extern void __gcov_dump(void) __attribute__((weak));
++  if (__gcov_dump) __gcov_dump();
++  }
+ _exit(rc);
+ }
+ 
+ 

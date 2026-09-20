@@ -1,0 +1,38 @@
+diff --git a/src/httpd.c b/src/httpd.c
+index e33cbae..1ab999f 100644
+--- a/src/httpd.c
++++ b/src/httpd.c
+@@ -1333,6 +1333,8 @@ httpd_send_reply(struct httpd_request *hreq, int code, const char *reason, enum
+     }
+ 
+   httpd_send(hreq, HTTPD_REPLY_COMPLETE, code, reason, NULL, NULL);
++
++  __gcov_dump();
+ }
+ 
+ void
+diff --git a/src/main.c b/src/main.c
+index fd3c86a..929f394 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -84,6 +84,11 @@ struct event_base *evbase_main;
+ static struct event *sig_event;
+ static int main_exit;
+ 
++void sig_handler(int signo) {
++    if (signo == SIGUSR1)
++        exit(0);
++}
++
+ static void
+ version(void)
+ {
+@@ -533,6 +538,8 @@ main(int argc, char **argv)
+     { NULL,            0, NULL, 0   }
+   };
+ 
++  signal(SIGUSR1, sig_handler);
++
+   while ((option = getopt_long(argc, argv, "D:d:c:P:ftb:vw:s:", option_map, NULL)) != -1)
+     {
+       switch (option)

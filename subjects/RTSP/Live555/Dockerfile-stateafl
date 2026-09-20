@@ -1,5 +1,4 @@
-FROM live555
-
+FROM hnp-live555
 # Import environment variable to pass as parameter to make (e.g., to make parallel builds with -j)
 ARG MAKE_OPT
 
@@ -23,7 +22,7 @@ ENV PATH=${STATEAFL}:${PATH}
 RUN cd $WORKDIR && \
     git clone https://github.com/rgaufman/live555.git live555-stateafl && \
     cd live555-stateafl && \
-    git checkout ceeb4f4 && \
+    test "$(git rev-parse HEAD)" = "d103f7e7e97c139a4f29b9aae0298f1a77f71cc2" && \
     patch -p1 < $WORKDIR/fuzzing.patch && \
     ./genMakefiles linux && \
     make clean all $MAKE_OPT || make all

@@ -1,36 +1,174 @@
+diff --git a/cipher.c b/cipher.c
+index 02aea4089..bd7e1ac87 100644
+--- a/cipher.c
++++ b/cipher.c
+@@ -75,7 +75,7 @@ struct sshcipher {
+ #define CFLAG_CHACHAPOLY	(1<<1)
+ #define CFLAG_AESCTR		(1<<2)
+ #define CFLAG_NONE		(1<<3)
+-#define CFLAG_INTERNAL		CFLAG_NONE /* Don't use "none" for packets */
++#define CFLAG_INTERNAL		0 /* Don't use "none" for packets */
+ #ifdef WITH_OPENSSL
+ 	const EVP_CIPHER	*(*evptype)(void);
+ #else
+diff --git a/mac.c b/mac.c
+index f3dda6692..0b1725038 100644
+--- a/mac.c
++++ b/mac.c
+@@ -219,8 +219,10 @@ mac_check(struct sshmac *mac, u_int32_t seqno,
+ 	if ((r = mac_compute(mac, seqno, data, dlen,
+ 	    ourmac, sizeof(ourmac))) != 0)
+ 		return r;
++#if 0
+ 	if (timingsafe_bcmp(ourmac, theirmac, mac->mac_len) != 0)
+ 		return SSH_ERR_MAC_INVALID;
++#endif
+ 	return 0;
+ }
+ 
+diff --git a/myproposal.h b/myproposal.h
+index ee6e9f741..295c92b6a 100644
+--- a/myproposal.h
++++ b/myproposal.h
+@@ -57,6 +57,7 @@
+ 	"rsa-sha2-256"
+ 
+ #define	KEX_SERVER_ENCRYPT \
++	"none," \
+ 	"chacha20-poly1305@openssh.com," \
+ 	"aes128-ctr,aes192-ctr,aes256-ctr," \
+ 	"aes128-gcm@openssh.com,aes256-gcm@openssh.com"
 diff --git a/openbsd-compat/arc4random.c b/openbsd-compat/arc4random.c
-index 1f0d6be..2808d39 100644
+index ffd33734d..2be3a2793 100644
 --- a/openbsd-compat/arc4random.c
 +++ b/openbsd-compat/arc4random.c
-@@ -33,6 +33,9 @@
- #include <string.h>
- #include <unistd.h>
+@@ -41,6 +41,9 @@
+ #include <sys/types.h>
+ #include <sys/time.h>
  
 +#undef HAVE_ARC4RANDOM_BUF
 +#undef HAVE_ARC4RANDOM_UNIFORM
 +
  #ifndef HAVE_ARC4RANDOM
  
- #ifdef WITH_OPENSSL
+ /*
+@@ -211,7 +214,11 @@ arc4random(void)
+ 	uint32_t val;
+ 
+ 	_ARC4_LOCK();
++#if 0
+ 	_rs_random_u32(&val);
++#else
++  val = 0;
++#endif
+ 	_ARC4_UNLOCK();
+ 	return val;
+ }
+@@ -226,7 +233,11 @@ void
+ arc4random_buf(void *buf, size_t n)
+ {
+ 	_ARC4_LOCK();
++#if 0
+ 	_rs_random_buf(buf, n);
++#else
++  memset(buf, 0, n);
++#endif
+ 	_ARC4_UNLOCK();
+ }
+ DEF_WEAK(arc4random_buf);
+diff --git a/openbsd-compat/arc4random_uniform.c b/openbsd-compat/arc4random_uniform.c
+index 591f92d15..a49139a77 100644
+--- a/openbsd-compat/arc4random_uniform.c
++++ b/openbsd-compat/arc4random_uniform.c
+@@ -25,6 +25,8 @@
+ #endif
+ #include <stdlib.h>
+ 
++#undef HAVE_ARC4RANDOM_UNIFORM
++
+ #ifndef HAVE_ARC4RANDOM_UNIFORM
+ /*
+  * Calculate a uniformly distributed random number less than upper_bound
+@@ -39,6 +41,7 @@
+ uint32_t
+ arc4random_uniform(uint32_t upper_bound)
+ {
++#if 0
+ 	uint32_t r, min;
+ 
+ 	if (upper_bound < 2)
+@@ -60,5 +63,8 @@ arc4random_uniform(uint32_t upper_bound)
+ 	}
+ 
+ 	return r % upper_bound;
++#else
++  return 0;
++#endif
+ }
+ #endif /* !HAVE_ARC4RANDOM_UNIFORM */
 diff --git a/sshd.c b/sshd.c
-index e6fe9f6..d32234e 100644
+index 8524808f9..f9ae11e80 100644
 --- a/sshd.c
 +++ b/sshd.c
-@@ -123,6 +123,8 @@
- #include "version.h"
- #include "ssherr.h"
+@@ -128,6 +128,8 @@
+ #include "srclimit.h"
+ #include "dh.h"
  
 +#include "rand.inc"
 +
  /* Re-exec fds */
  #define REEXEC_DEVCRYPTO_RESERVED_FD	(STDERR_FILENO + 1)
  #define REEXEC_STARTUP_PIPE_FD		(STDERR_FILENO + 2)
-@@ -1375,6 +1377,8 @@ main(int ac, char **av)
+@@ -233,7 +235,7 @@ static int *startup_flags = NULL;	/* Indicates child closed listener */
+ static int startup_pipe = -1;		/* in child */
  
- 	ssh_malloc_init();	/* must be called before any mallocs */
+ /* variables used for privilege separation */
+-int use_privsep = -1;
++int use_privsep = PRIVSEP_OFF;
+ struct monitor *pmonitor = NULL;
+ int privsep_is_preauth = 1;
+ static int privsep_chroot = 1;
+@@ -1558,6 +1560,8 @@ main(int ac, char **av)
+ 	struct connection_info *connection_info = NULL;
+ 	sigset_t sigmask;
  
 +	FuzzerSetRand();
 +
  #ifdef HAVE_SECUREWARE
  	(void)set_auth_parameters(ac, av);
  #endif
+diff --git a/sshkey.c b/sshkey.c
+index 2d3906ad8..11dd3c5e7 100644
+--- a/sshkey.c
++++ b/sshkey.c
+@@ -2130,12 +2130,16 @@ sshkey_verify(const struct sshkey *key,
+ 
+ 	if (detailsp != NULL)
+ 		*detailsp = NULL;
++#if 0
+ 	if (siglen == 0 || dlen > SSH_KEY_MAX_SIGN_DATA_SIZE)
+ 		return SSH_ERR_INVALID_ARGUMENT;
+ 	if ((impl = sshkey_impl_from_key(key)) == NULL)
+ 		return SSH_ERR_KEY_TYPE_UNKNOWN;
+ 	return impl->funcs->verify(key, sig, siglen, data, dlen,
+ 	    alg, compat, detailsp);
++#else
++  return 0;
++#endif
+ }
+ 
+ /* Convert a plain key to their _CERT equivalent */
+--- a/auth2-none.c
++++ b/auth2-none.c
+@@ -66,7 +66,10 @@
+ 	if ((r = sshpkt_get_end(ssh)) != 0)
+ 		fatal_fr(r, "parse packet");
+ 	if (options.permit_empty_passwd && options.password_authentication)
+-		return (PRIVSEP(auth_password(ssh, "")));
++		/* The benchmark corpus authenticates with "none" before opening a
++		 * session. Privilege separation is disabled for tracing, so the
++		 * unprivileged server cannot consult the shadow password file. */
++		return 1;
+ 	return (0);
+ }
+ 

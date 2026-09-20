@@ -1,8 +1,8 @@
 diff --git a/dcmnet/libsrc/dul.cc b/dcmnet/libsrc/dul.cc
-index b8e9cc0..e83e336 100644
+index c1ec9bd95..fb0e27cd7 100644
 --- a/dcmnet/libsrc/dul.cc
 +++ b/dcmnet/libsrc/dul.cc
-@@ -2284,7 +2284,7 @@ createAssociationKey(PRIVATE_NETWORKKEY ** networkKey,
+@@ -2305,7 +2305,7 @@ createAssociationKey(PRIVATE_NETWORKKEY ** networkKey,
      PRIVATE_ASSOCIATIONKEY *key;
  
      key = (PRIVATE_ASSOCIATIONKEY *) malloc(
@@ -11,7 +11,7 @@ index b8e9cc0..e83e336 100644
      if (key == NULL) return EC_MemoryExhausted;
      key->receivePDUQueue = NULL;
  
-@@ -2297,7 +2297,7 @@ createAssociationKey(PRIVATE_NETWORKKEY ** networkKey,
+@@ -2318,7 +2318,7 @@ createAssociationKey(PRIVATE_NETWORKKEY ** networkKey,
      key->timerStart = 0;
      key->maxPDVInput = maxPDU;
      key->fragmentBufferLength = maxPDU + 100;

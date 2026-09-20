@@ -1,5 +1,4 @@
-FROM openssh
-
+FROM hnp-openssh
 # Import environment variable to pass as parameter to make (e.g., to make parallel builds with -j)
 ARG MAKE_OPT
 
@@ -23,9 +22,9 @@ ENV PATH=${STATEAFL}:${PATH}
 
 # Dedicated instrumented version for StateAFL
 RUN cd ${WORKDIR} && \
-    git clone https://github.com/vegard/openssh-portable.git openssh-stateafl && \
+    git clone --depth 1 --branch V_9_7_P1 https://github.com/openssh/openssh-portable.git openssh-stateafl && \
     cd openssh-stateafl && \
-    git checkout 7cfea58 && \
+    test "$(git rev-parse HEAD)" = "86bdd3853f4d32c85e295e6216a2fe0953ad93f0" && \
     cp ${WORKDIR}/rand.inc . && \
     patch -p1 < ${WORKDIR}/rand.patch && \
     autoreconf && \
@@ -33,16 +32,12 @@ RUN cd ${WORKDIR} && \
     CC=${STATEAFL}/afl-clang-fast \
     CFLAGS="-g -O3" \
     --prefix=$PWD/install \
-    --with-openssl=$WORKDIR/openssl-install \
-    CFLAGS="-I$WORKDIR/openssl-install/include" \
-    --with-ldflags="-L$WORKDIR/openssl-install/lib" \
-    --with-privsep-path=$PWD/var-empty \
-    --with-sandbox=no \
-    --with-privsep-user=ubuntu && \
+        --with-privsep-path=$PWD/var-empty \
+        --with-sandbox=no && \
     make $MAKE_OPT && \
-    make install
+    make install && \
+    printf '\nPermitEmptyPasswords yes\nUsePAM no\n' >> ${WORKDIR}/openssh-stateafl/sshd_config
 
 COPY --chown=ubuntu:ubuntu in-ssh-replay ${WORKDIR}/in-ssh-replay
 COPY --chown=ubuntu:ubuntu run-stateafl.sh ${WORKDIR}/run-stateafl
 COPY --chown=ubuntu:ubuntu blacklist_alloc.sh ${WORKDIR}/blacklist_alloc.sh
-

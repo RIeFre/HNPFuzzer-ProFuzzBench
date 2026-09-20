@@ -15,7 +15,7 @@ rm $covfile; touch $covfile
 #clear gcov data
 gcovr -r . -s -d > /dev/null 2>&1
 
-rm -rf /home/ubuntu/ftpshare/*
+rm -rf /home/ubuntu/ftpshare/* /home/ubuntu/bftplog /home/ubuntu/bftpdutmp
 
 mkdir /home/ubuntu/ftpshare/data
 chmod go+w /home/ubuntu/ftpshare/data
@@ -23,7 +23,7 @@ chmod go+w /home/ubuntu/ftpshare/data
 mkdir -p /home/ubuntu/ftpshare/home/ubuntu/experiments/bftpd-gcov/
 chmod -R go+w /home/ubuntu/ftpshare/home
 
-cp $WORKDIR/basic.config $WORKDIR/basic.config.bak
+cp $WORKDIR/basic.conf $WORKDIR/basic.conf.bak
 perl -p -i -e 's|AUTO_CHDIR="[^"]*"|AUTO_CHDIR="/data"|' ../basic.conf
 
 #output the header of the coverage file which is in the CSV format
@@ -47,7 +47,7 @@ for f in $(echo $folder/$testdir/*.raw); do
   #terminate running server(s)
   pkill bftpd
 
-  rm -rf /home/ubuntu/ftpshare/data/*
+  rm -rf /home/ubuntu/ftpshare/data/* /home/ubuntu/bftplog /home/ubuntu/bftpdutmp
   chown -R ubuntu:ubuntu /home/ubuntu/ftpshare/home
   chmod -R go+w /home/ubuntu/ftpshare/home
 
@@ -73,7 +73,7 @@ for f in $(echo $folder/$testdir/id*); do
   #terminate running server(s)
   pkill bftpd
 
-  rm -rf /home/ubuntu/ftpshare/data/*
+  rm -rf /home/ubuntu/ftpshare/data/* /home/ubuntu/bftplog /home/ubuntu/bftpdutmp
   chown -R ubuntu:ubuntu /home/ubuntu/ftpshare/home
   chmod -R go+w /home/ubuntu/ftpshare/home
   
@@ -107,5 +107,5 @@ then
   echo "$time,$l_per,$l_abs,$b_per,$b_abs" >> $covfile
 fi
 
-cp $WORKDIR/basic.config.bak $WORKDIR/basic.config
+cp $WORKDIR/basic.conf.bak $WORKDIR/basic.conf
 

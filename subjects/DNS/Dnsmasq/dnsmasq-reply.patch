@@ -1,0 +1,74 @@
+diff --color -ur a/src/domain-match.c b/src/domain-match.c
+--- a/src/domain-match.c	2026-06-04 19:47:22.000000000 +0800
++++ b/src/domain-match.c	2026-09-12 07:33:25.203898426 +0800
+@@ -431,8 +431,11 @@
+        log_query(F_UPSTREAM | F_RCODE, "opcode", &a, NULL, 0);
+      }
+   
++  /* dnsmasq-fuzz-reply.patch: when the question section cannot be parsed
++     (malformed query), still emit the header-only REFUSED answer instead of
++     returning 0 (which makes the caller drop the reply silently). */
+   if (!(p = skip_questions(header, size)))
+-    return 0;
++    return sizeof(struct dns_header);
+ 	  
+   if (flags & gotname & F_IPV4)
+     for (start = first; start != last; start++)
+diff --color -ur a/src/forward.c b/src/forward.c
+--- a/src/forward.c	2026-06-04 19:47:22.000000000 +0800
++++ b/src/forward.c	2026-09-12 07:32:21.707393661 +0800
+@@ -1658,7 +1658,22 @@
+   if (n < (int)sizeof(struct dns_header) || 
+       (msg.msg_flags & MSG_TRUNC) ||
+       (header->hb3 & HB3_QR))
+-    return;
++    {
++      /* dnsmasq-fuzz-reply.patch: upstream silently drops malformed datagrams
++	 (hardening added after 2.85). AFLNet deadlocks waiting for a response
++	 that never comes, so reply REFUSED to anything dropped at this gate. */
++      unsigned char refuse[12] = {0};
++      if (n >= 2)
++	{
++	  refuse[0] = ((unsigned char *)header)[0];
++	  refuse[1] = ((unsigned char *)header)[1];
++	}
++      refuse[2] = 0x80; /* QR */
++      refuse[3] = 5;    /* REFUSED */
++      if (source_addr.sa.sa_family == AF_INET)
++	sendto(listen->fd, refuse, 12, 0, &source_addr.sa, sizeof(source_addr.in));
++      return;
++    }
+ 
+   /* Clear buffer beyond request to avoid risk of
+      information disclosure. */
+diff --color -ur a/src/util.c b/src/util.c
+--- a/src/util.c	2026-09-12 07:36:33.894398474 +0800
++++ b/src/util.c	2026-09-11 22:01:13.129760735 +0800
+@@ -47,17 +47,14 @@
+ 
+ void rand_init(void)
+ {
+-  /*int fd = open(RANDFILE, O_RDONLY);
++  int fd = open(RANDFILE, O_RDONLY);
+   
+   if (fd == -1 ||
+       !read_write(fd, (unsigned char *)&seed, sizeof(seed), RW_READ) ||
+       !read_write(fd, (unsigned char *)&in, sizeof(in), RW_READ))
+     die(_("failed to seed the random number generator: %s"), NULL, EC_MISC);
+   
+-  close(fd);*/
+-
+-  memset(seed, 0, sizeof(seed));
+-  memset(in, 0, sizeof(in));
++  close(fd);
+ }
+ 
+ #define ROTATE(x,b) (((x) << (b)) | ((x) >> (32 - (b))))
+@@ -888,7 +885,6 @@
+ #endif
+   
+   /* fallback, dumb code. */
+-  if (max_fd > 1024) max_fd = 1024;
+   for (max_fd--; max_fd >= 0; max_fd--)
+     if (max_fd != STDOUT_FILENO && max_fd != STDERR_FILENO && max_fd != STDIN_FILENO &&
+ 	max_fd != spare1 && max_fd != spare2 && max_fd != spare3)

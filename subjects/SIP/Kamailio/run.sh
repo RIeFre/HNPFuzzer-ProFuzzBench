@@ -12,6 +12,8 @@ strstr() {
 }
 
 #Commands for afl-based fuzzers (e.g., aflnet, aflnwe)
+#Commands for afl-based fuzzers (e.g., aflnet, aflnwe) -- HNPFuzzer carries no
+#"afl" substring, so it needs the explicit test.
 if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
 
   # Run fuzzer-specific commands (if any)
@@ -28,13 +30,17 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   export KAMAILIO_RUNTIME_DIR="runtime_dir"
 
   cd $WORKDIR/${TARGET_DIR}
-
+  mkdir $OUTDIR
   if $(strstr $FUZZER "HNPFuzzer"); then
-    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/5060 $OPTIONS -c ${WORKDIR}/run_pjsip ./src/kamailio -f ${WORKDIR}/kamailio-basic.cfg -L $KAMAILIO_MODULES -Y $KAMAILIO_RUNTIME_DIR -n 1 -D -E
+    # HNPFuzzer hands the message buffers to the target over shared
+    # memory (sock2shm.so is LD_PRELOAD-ed into it), which is what lets
+    # a resident server be reused across test cases.
+    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/5060 $OPTIONS -c ${WORKDIR}/run_pjsip ./src/kamailio -f ${WORKDIR}/kamailio-basic.cfg -L $KAMAILIO_MODULES -Y $KAMAILIO_RUNTIME_DIR -n 1 -D -E > ${OUTDIR}/fuzzing.out 2>&1
   else
-    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/5060 $OPTIONS -c ${WORKDIR}/run_pjsip ./src/kamailio -f ${WORKDIR}/kamailio-basic.cfg -L $KAMAILIO_MODULES -Y $KAMAILIO_RUNTIME_DIR -n 1 -D -E
+    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N udp://127.0.0.1/5060 $OPTIONS -c ${WORKDIR}/run_pjsip ./src/kamailio -f ${WORKDIR}/kamailio-basic.cfg -L $KAMAILIO_MODULES -Y $KAMAILIO_RUNTIME_DIR -n 1 -D -E > ${OUTDIR}/fuzzing.out 2>&1
   fi
- 
+
+
   STATUS=$?
 
   #Step-2. Collect code coverage over time
@@ -45,13 +51,16 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
   if [ $FUZZER = "aflnwe" ]; then
-    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 5060 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 0
+    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 5060 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 0 > ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 5060 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 1
+    cov_script ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/ 5060 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_over_time.csv 1 > ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov.out 2>&1
   fi
 
   cd $WORKDIR/kamailio-gcov
-  gcovr -r . --html --html-details -o index.html
+  # Keep the HTML denominator aligned with cov_script: only core/lib code and
+  # the modules actually loaded by kamailio-basic.cfg.
+  EXCL_UNLOADED_MODULES='.*modules/(?!kex/|corex/|tm/|tmx/|sl/|rr/|pv/|maxfwd/|usrloc/|registrar/|textops/|siputils/|xlog/|sanity/|counters/).*'
+  gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r src --exclude "$EXCL_UNLOADED_MODULES" --html --html-details -o index.html
   mkdir ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_html/
   cp *.html ${WORKDIR}/${TARGET_DIR}/${OUTDIR}/cov_html/
 

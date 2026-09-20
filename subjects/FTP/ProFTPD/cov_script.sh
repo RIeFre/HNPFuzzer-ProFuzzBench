@@ -13,7 +13,7 @@ fmode=$5    #file mode -- structured or not
 rm $covfile; touch $covfile
 
 #clear gcov data
-gcovr -r . -s -d > /dev/null 2>&1
+gcovr --gcov-ignore-errors=no_working_dir_found -r . -s -d > /dev/null 2>&1
 
 #output the header of the coverage file which is in the CSV format
 #Time: timestamp, l_per/b_per and l_abs/b_abs: line/branch coverage in percentage and absolutate number
@@ -35,7 +35,8 @@ for f in $(echo $folder/$testdir/*.raw); do
 
   #terminate running server(s)
   pkill proftpd
-  rm /home/ubuntu/ftpshare/*
+
+  ${WORKDIR}/clean
   chown -R ubuntu:ubuntu /home/ubuntu/experiments/proftpd-gcov/{src,lib,modules}
   chmod -R go+rw /home/ubuntu/experiments/proftpd-gcov/{src,lib,modules}
 
@@ -43,7 +44,7 @@ for f in $(echo $folder/$testdir/*.raw); do
   timeout -k 0 3s ./proftpd -n -c ${WORKDIR}/basic.conf -X
   
   wait
-  cov_data=$(gcovr -r . -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found -r . -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -59,10 +60,11 @@ for f in $(echo $folder/$testdir/id*); do
 
   #terminate running server(s)
   pkill proftpd
-  rm /home/ubuntu/ftpshare/*
+
+  ${WORKDIR}/clean
   chown -R ubuntu:ubuntu /home/ubuntu/experiments/proftpd-gcov/{src,lib,modules}
   chmod -R go+rw /home/ubuntu/experiments/proftpd-gcov/{src,lib,modules}
- 
+
   $replayer $f FTP $pno 1 > /dev/null 2>&1 &
   timeout -k 0 3s ./proftpd -n -c ${WORKDIR}/basic.conf -X
 
@@ -70,7 +72,7 @@ for f in $(echo $folder/$testdir/id*); do
   count=$(expr $count + 1)
   rem=$(expr $count % $step)
   if [ "$rem" != "0" ]; then continue; fi
-  cov_data=$(gcovr -r . -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found -r . -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -83,7 +85,7 @@ done
 if [[ $step -gt 1 ]]
 then
   time=$(stat -c %Y $f)
-  cov_data=$(gcovr -r . -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found -r . -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)

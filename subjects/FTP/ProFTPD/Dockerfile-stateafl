@@ -1,5 +1,4 @@
-FROM proftpd
-
+FROM hnp-proftpd
 # Use ubuntu as default username
 USER ubuntu
 WORKDIR /home/ubuntu
@@ -28,9 +27,9 @@ ENV PATH=${STATEAFL}:${PATH}
 
 # Dedicated instrumented version for StateAFL
 RUN cd ${WORKDIR} && \
-    git clone https://github.com/proftpd/proftpd.git proftpd-stateafl && \
+    git clone --depth 1 --branch v1.3.9d https://github.com/proftpd/proftpd.git proftpd-stateafl && \
     cd proftpd-stateafl && \
-    git checkout 4017eff8 && \
+    test "$(git rev-parse HEAD)" = "f59f248e26bdfa514443e42bf72a145641df635d" && \
     patch -p1 < ${WORKDIR}/malloc.patch && \
     CC=${STATEAFL}/afl-clang-fast CXX=${STATEAFL}/afl-clang-fast++ ./configure --enable-devel=nodaemon:nofork && \
     make $MAKE_OPT

@@ -27,7 +27,7 @@ for f in $(echo $folder/$testdir/id* | grep -v "*"); do
   #terminate running server(s)
   clean
 
-  exim -bd -oX $pno -oP /var/lock/exim.pid
+  exim -bd -oX $pno
 
   $replayer $f SMTP $pno 1 #>/dev/null 2>&1
 

@@ -1,0 +1,24 @@
+diff --git a/src/core/cfg.lex b/src/core/cfg.lex
+index 82278d5447..d021a6d9b5 100644
+--- a/src/core/cfg.lex
++++ b/src/core/cfg.lex
+@@ -2360,5 +2360,5 @@ static void ksr_yy_fatal_error(const char* msg)
+ 	}
+ 
+ 	fprintf( stderr, "%s\n", msg );
+-	_exit( YY_EXIT_FAILURE );
++	exit( YY_EXIT_FAILURE );
+ }
+diff --git a/src/core/daemonize.h b/src/core/daemonize.h
+index eb21e44273..456c784193 100644
+--- a/src/core/daemonize.h
++++ b/src/core/daemonize.h
+@@ -48,7 +48,7 @@ extern int ksr_atexit_mode;
+ 		if(ksr_atexit_mode == 1) { \
+ 			exit(excode);          \
+ 		} else {                   \
+-			_exit(excode);         \
++			exit(excode);         \
+ 		}                          \
+ 	} while(0)
+ 

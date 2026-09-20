@@ -13,7 +13,8 @@ fmode=$5    #file mode -- structured or not
 rm $covfile; touch $covfile
 
 #clear gcov data
-gcovr -r . -s -d > /dev/null 2>&1
+gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r . -s -d > /dev/null 2>&1
+find /home/fuzzing/home/ubuntu/experiments/pure-ftpd-gcov -type f -name '*.gcda' -delete 2>/dev/null || true
 
 #output the header of the coverage file which is in the CSV format
 #Time: timestamp, l_per/b_per and l_abs/b_abs: line/branch coverage in percentage and absolutate number
@@ -37,11 +38,11 @@ for f in $(echo $folder/$testdir/*.raw); do
   pkill pure-ftpd
 
   $replayer $f FTP $pno 1 > /dev/null 2>&1 &
-  GCOV_PREFIX=/home/fuzzing/ timeout -k 0 3s src/pure-ftpd -A
+  GCOV_PREFIX=/home/fuzzing/ timeout -k 0 3s src/pure-ftpd -A -P 127.0.0.1 -4
   
   wait
   cp /home/fuzzing/home/ubuntu/experiments/pure-ftpd-gcov/src/*.gcda /home/ubuntu/experiments/pure-ftpd-gcov/src/ > /dev/null 2>&1
-  cov_data=$(gcovr -r . -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r . -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -59,14 +60,14 @@ for f in $(echo $folder/$testdir/id*); do
   pkill pure-ftpd
   
   $replayer $f FTP $pno 1 > /dev/null 2>&1 &
-  GCOV_PREFIX=/home/fuzzing/ timeout -k 0 3s src/pure-ftpd -A
+  GCOV_PREFIX=/home/fuzzing/ timeout -k 0 3s src/pure-ftpd -A -P 127.0.0.1 -4
 
   wait
   cp /home/fuzzing/home/ubuntu/experiments/pure-ftpd-gcov/src/*.gcda /home/ubuntu/experiments/pure-ftpd-gcov/src/ > /dev/null 2>&1
   count=$(expr $count + 1)
   rem=$(expr $count % $step)
   if [ "$rem" != "0" ]; then continue; fi
-  cov_data=$(gcovr -r . -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r . -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -79,7 +80,7 @@ done
 if [[ $step -gt 1 ]]
 then
   time=$(stat -c %Y $f)
-  cov_data=$(gcovr -r . -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r . -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)

@@ -11,7 +11,8 @@ strstr() {
   return 0
 }
 
-#Commands for afl-based fuzzers (e.g., aflnet, aflnwe)
+#Commands for afl-based fuzzers (e.g., aflnet, aflnwe) -- HNPFuzzer carries no
+#"afl" substring, so it needs the explicit test.
 if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
 
   # Run fuzzer-specific commands (if any)
@@ -25,30 +26,63 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #Step-1. Do Fuzzing
   #Move to fuzzing folder
   cd $WORKDIR/${TARGET_DIR}/Source/Release
-  echo "$WORKDIR/${TARGET_DIR}/Source/Release"
+  mkdir $OUTDIR
   if $(strstr $FUZZER "HNPFuzzer"); then
-    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/ftp.dict -o $OUTDIR -N tcp://127.0.0.1/2200 $OPTIONS -c ${WORKDIR}/ftpclean ./fftp fftp.conf 2200
+    # HNPFuzzer hands the message buffers to the target over shared memory
+    # (sock2shm.so is LD_PRELOAD-ed into it), which is what lets a resident
+    # server be reused across test cases.
+    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/ftp.dict -o $OUTDIR -N tcp://127.0.0.1/2100 $OPTIONS -c ${WORKDIR}/ftpclean ./fftp ${WORKDIR}/fftp.conf > ${OUTDIR}/fuzzing.out 2>&1
   else
-    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/ftp.dict -o $OUTDIR -N tcp://127.0.0.1/2200 $OPTIONS -c ${WORKDIR}/ftpclean ./fftp fftp.conf 2200
+    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -x ${WORKDIR}/ftp.dict -o $OUTDIR -N tcp://127.0.0.1/2100 $OPTIONS -c ${WORKDIR}/ftpclean ./fftp ${WORKDIR}/fftp.conf > ${OUTDIR}/fuzzing.out 2>&1
   fi
+
   STATUS=$?
 
   #Step-2. Collect code coverage over time
   #Move to gcov folder
   cd $WORKDIR/LightFTP-gcov/Source/Release
 
+  # AFL++ (and therefore hspfuzzer) always nests one directory per fuzzing
+  # instance under -o: out-<target>-hspfuzzer/default/{queue,crashes,...}.
+  # AFLNet/aflnwe write their queue straight into out-<target>-<fuzzer>/.
+  if [ "$FUZZER" = "hspfuzzer" ]; then
+    FUZZ_DIR="${OUTDIR}/default"
+  else
+    FUZZ_DIR="$OUTDIR"
+  fi
+
   #The last argument passed to cov_script should be 0 if the fuzzer is afl/nwe and it should be 1 if the fuzzer is based on aflnet
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
-  if [ $FUZZER = "aflnwe" ]; then
-    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/ 2200 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv 0
+  # hspfuzzer only ever produces queue/ (it has no replayable-queue/), so it
+  # joins aflnwe on the concatenated-message path.
+  if [ "$FUZZER" = "aflnwe" ] || [ "$FUZZER" = "hspfuzzer" ]; then
+    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/ 2100 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_over_time.csv 0 > ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/ 2200 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv 1
+    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/ 2100 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_over_time.csv 1 > ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov.out 2>&1
   fi
 
   gcovr -r .. --html --html-details -o index.html
-  mkdir ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_html/
-  cp *.html ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_html/
+  mkdir ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_html/
+  cp *.html ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_html/
+
+  # profuzzbench_generate_csv.sh extracts out-<target>-<fuzzer>/cov_over_time.csv
+  # from the tarball, so for hspfuzzer (whose results sit one level deeper in
+  # default/) the two artifacts are also copied up to the OUTDIR root.
+  if [ "$FUZZER" = "hspfuzzer" ]; then
+    cp ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_over_time.csv \
+       ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv
+    cp -r ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_html \
+       ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_html
+  fi
+
+  # Fail loudly when the replay collected nothing: generate_csv.sh would
+  # otherwise emit a header-only CSV and the whole run would look successful.
+  cov_lines=$(wc -l < ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv)
+  if [ "$cov_lines" -lt 2 ]; then
+    echo "ERROR: no coverage rows for $FUZZER on $TARGET_DIR (${OUTDIR}/cov_over_time.csv)" >&2
+    exit 1
+  fi
 
   #Step-3. Save the result to the ${WORKDIR} folder
   #Tar all results to a file

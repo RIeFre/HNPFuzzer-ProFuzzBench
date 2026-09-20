@@ -1,0 +1,38 @@
+--- Makefile.orig
++++ Makefile
+@@ -137,7 +137,7 @@
+ # deliveries. (Local deliveries run as various non-root users, typically as the
+ # owner of a local mailbox.) Specifying these values as root is not supported.
+ 
+-EXIM_USER=
++EXIM_USER=ubuntu
+ 
+ # If you specify EXIM_USER as a name, this is looked up at build time, and the
+ # uid number is built into the binary. However, you can specify that this
+@@ -208,7 +208,7 @@
+ 
+ # Uncomment the following lines if you want
+ # to build Exim without any TLS support (either OpenSSL or GnuTLS):
+-# DISABLE_TLS=yes
++DISABLE_TLS=yes
+ # Unless you do this, you must define one of USE_OPENSSL or USE_GNUTLS
+ # below.
+ 
+@@ -282,7 +282,7 @@
+ 
+ 
+ # Uncomment the following line to remove support for TLS Resumption
+-# DISABLE_TLS_RESUME=yes
++DISABLE_TLS_RESUME=yes
+ 
+ 
+ ###############################################################################
+@@ -503,7 +503,7 @@
+ # SUPPORT_TLS (the default).  For DANE under GnuTLS we need an additional
+ # library.  See TLS_LIBS or USE_GNUTLS_PC below.
+ 
+-SUPPORT_DANE=yes
++#SUPPORT_DANE=yes
+ 
+ #------------------------------------------------------------------------------
+ # Additional libraries and include directories may be required for some

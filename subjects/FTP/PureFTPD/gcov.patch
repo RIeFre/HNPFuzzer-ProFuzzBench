@@ -1,5 +1,5 @@
 diff --git a/src/ftpd.c b/src/ftpd.c
-index 60b95b6..a4d7c57 100644
+index 6f1f504..ebdce5b 100644
 --- a/src/ftpd.c
 +++ b/src/ftpd.c
 @@ -299,7 +299,7 @@ void _EXIT(const int status)
@@ -11,15 +11,16 @@ index 60b95b6..a4d7c57 100644
  }
  
  static char replybuf[MAX_SERVER_REPLY_LEN * 4U];
-@@ -1927,6 +1927,7 @@ void dopass(char *password)
-     } else {
+@@ -1915,6 +1915,8 @@ void dopass(char *password)
          addreply(230, MSG_CURRENT_DIR_IS, wd);
      }
-+    unsetenv("GCOV_PREFIX");
  
++    unsetenv("GCOV_PREFIX");
++
  #ifndef NON_ROOT_FTP
      disablesignals();
-@@ -5278,7 +5279,7 @@ static void accept_client(const int active_listen_fd) {
+ # ifndef WITHOUT_PRIVSEP
+@@ -5287,7 +5289,7 @@ static void accept_client(const int active_listen_fd) {
      sigaddset(&set, SIGCHLD);
      sigprocmask(SIG_BLOCK, &set, NULL);
      nb_children++;

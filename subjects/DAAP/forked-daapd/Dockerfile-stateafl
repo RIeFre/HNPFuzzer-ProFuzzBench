@@ -1,5 +1,4 @@
-FROM forked-daapd
-
+FROM hnp-forked-daapd
 # Use ubuntu as default username
 USER ubuntu
 WORKDIR /home/ubuntu
@@ -29,13 +28,12 @@ ENV PATH=${STATEAFL}:${PATH}
 
 # Dedicated instrumented version for StateAFL
 RUN cd $WORKDIR && \
-    git clone https://github.com/ejurgensen/forked-daapd.git forked-daapd-stateafl && \
-    cd forked-daapd-stateafl && \
-    git checkout 2ca10d9 && \
-    patch -p1 < $WORKDIR/forked-daapd.patch && \
+    git clone --depth 1 --branch 29.3 https://github.com/owntone/owntone-server.git owntone-stateafl && \
+    cd owntone-stateafl && \
+    test "$(git rev-parse HEAD)" = "d6fb3edf5831de38134ebd92fcf09a730ddd37aa" && \
+    patch -p1 < $WORKDIR/owntone.patch && \
     autoreconf -i && \
-    CC=${STATEAFL}/afl-clang-fast CFLAGS="-DSQLITE_CORE" ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var  --disable-mpd --disable-itunes --disable-lastfm --disable-spotify --disable-verification  --disable-shared --enable-static && \
-    make -C src/ SMARTPL2SQL.c SMARTPL.c DAAP2SQL.c DAAPLexer.c RSPLexer.c RSP2SQL.c && \
+    CC=${STATEAFL}/afl-clang-fast CFLAGS="-DSQLITE_CORE" ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var  --disable-mpd --disable-shared --enable-static && \
     make clean all $MAKE_OPT
 
 COPY --chown=ubuntu:ubuntu in-daap-replay ${WORKDIR}/in-daap-replay

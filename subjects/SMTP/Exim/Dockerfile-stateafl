@@ -1,5 +1,4 @@
-FROM exim
-
+FROM hnp-exim
 # Import environment variable to pass as parameter to make (e.g., to make parallel builds with -j)
 ARG MAKE_OPT
 
@@ -21,16 +20,30 @@ ENV AFL_PATH=${STATEAFL}
 ENV PATH=${STATEAFL}:${PATH}
 
 # Dedicated instrumented version for StateAFL
+# (rewritten for the 4.100 tarball; the old file referenced exim-bugs.patch /
+#  exim.Makefile.patch which were never shipped, so this image had been
+#  unbuildable -- it now reuses the rebased bugs.patch / Makefile.patch)
+#
+# exim-stateafl-rename.patch: StateAFL's afl-llvm-rt-state-tracer.o defines
+# its own global "queue_size", which collides with exim's global of the same
+# name at every binary link (clang: multiple definition). Rename exim's
+# variable to queue_size2 (sort-safe: exim checks the expansion-variable
+# table is alphabetically ordered)
+USER root
 RUN cd ${WORKDIR} && \
-    git clone https://github.com/Exim/exim exim-stateafl && \
+    wget -q -O exim.tar.xz https://mirrors.kernel.org/debian/pool/main/e/exim4/exim4_4.100.orig.tar.xz && \
+    tar -xJf exim.tar.xz && \
+    mv exim-4.100 exim-stateafl && \
     cd exim-stateafl && \
-    git checkout 38903fb && \
-    patch -p1 < ${WORKDIR}/exim-rand.patch && \
-    patch -p1 < ${WORKDIR}/exim-log-bug.patch && \
-    cd src; mkdir Local; cp src/EDITME Local/Makefile && \
-    cd Local; patch -p1 < ${WORKDIR}/exim.patch; cd .. && \
+    patch -p1 < ${WORKDIR}/bugs.patch && \
+    patch -p1 < ${WORKDIR}/configure.patch && \
+    patch -p1 < ${WORKDIR}/exim-stateafl-rename.patch && \
+    mkdir -p Local && cp src/EDITME Local/Makefile && \
+    cd Local && patch -p0 < ${WORKDIR}/Makefile.patch && cd .. && \
+    # StateAFL's runtime object is not position-independent, which
+# breaks linking the default-PIE executables
     make CC=${STATEAFL}/afl-clang-fast clean all $MAKE_OPT
-
+USER ubuntu
 
 COPY --chown=ubuntu:ubuntu in-smtp-replay ${WORKDIR}/in-smtp-replay
 COPY --chown=ubuntu:ubuntu run-stateafl.sh ${WORKDIR}/run-stateafl
@@ -48,4 +61,3 @@ RUN cd ${WORKDIR} && \
 ENV LD_PRELOAD=$WORKDIR/libfaketime-asan-fixed/src/libfaketime.so.1
 ENV FAKETIME="2000-01-01 11:12:13"
 ENV FAKETIME_ONLY_CMDS="exim"
-

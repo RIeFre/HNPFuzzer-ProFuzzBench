@@ -13,7 +13,7 @@ fmode=$5    #file mode -- structured or not
 rm $covfile; touch $covfile
 
 #clear gcov data
-gcovr -r $WORKDIR/tinydtls-gcov -s -d > /dev/null 2>&1
+gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r $WORKDIR/tinydtls-gcov -s -d > /dev/null 2>&1
 
 #output the header of the coverage file which is in the CSV format
 #Time: timestamp, l_per/b_per and l_abs/b_abs: line/branch coverage in percentage and absolutate number
@@ -34,10 +34,10 @@ for f in $(echo $folder/$testdir/*.raw); do
   time=$(stat -c %Y $f)
     
   $replayer $f DTLS12 $pno 30 > /dev/null 2>&1 &
-  timeout -k 0 -s SIGUSR1 3s ./tinydtls-gcov/tests/dtls-server > /dev/null 2>&1
+  timeout -k 1 -s SIGUSR1 1s ./tinydtls-gcov/tests/dtls-server > /dev/null 2>&1
   
   wait
-  cov_data=$(gcovr -r $WORKDIR/tinydtls-gcov -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r $WORKDIR/tinydtls-gcov -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -52,13 +52,13 @@ for f in $(echo $folder/$testdir/id*); do
   time=$(stat -c %Y $f)
   
   $replayer $f DTLS12 $pno 30 > /dev/null 2>&1 &
-  timeout -k 0 -s SIGUSR1 3s ./tinydtls-gcov/tests/dtls-server > /dev/null 2>&1
+  timeout -k 1 -s SIGUSR1 1s ./tinydtls-gcov/tests/dtls-server > /dev/null 2>&1
 
   wait
   count=$(expr $count + 1)
   rem=$(expr $count % $step)
   if [ "$rem" != "0" ]; then continue; fi
-  cov_data=$(gcovr -r $WORKDIR/tinydtls-gcov -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r $WORKDIR/tinydtls-gcov -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -71,7 +71,7 @@ done
 if [[ $step -gt 1 ]]
 then
   time=$(stat -c %Y $f)
-  cov_data=$(gcovr -r $WORKDIR/tinydtls-gcov -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-errors=no_working_dir_found --merge-mode-functions separate -r $WORKDIR/tinydtls-gcov -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)

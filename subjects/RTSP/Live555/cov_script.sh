@@ -13,7 +13,7 @@ fmode=$5    #file mode -- structured or not
 rm $covfile; touch $covfile
 
 #clear gcov data
-gcovr -r .. -s -d > /dev/null 2>&1
+gcovr --gcov-ignore-parse-errors=suspicious_hits.warn_once_per_file -r .. -s -d > /dev/null 2>&1
 
 #output the header of the coverage file which is in the CSV format
 #Time: timestamp, l_per/b_per and l_abs/b_abs: line/branch coverage in percentage and absolutate number
@@ -37,10 +37,10 @@ for f in $(echo $folder/$testdir/*.raw); do
   pkill testOnDemandR
     
   $replayer $f RTSP $pno 1 > /dev/null 2>&1 &
-  timeout -k 0 -s SIGUSR1 3s ./testOnDemandRTSPServer $pno > /dev/null 2>&1
+  timeout -k 0 -s SIGUSR1 1s ./testOnDemandRTSPServer $pno > /dev/null 2>&1
 
   wait
-  cov_data=$(gcovr -r .. -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-parse-errors=suspicious_hits.warn_once_per_file -r .. -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -58,13 +58,13 @@ for f in $(echo $folder/$testdir/id*); do
   pkill testOnDemandR
   
   $replayer $f RTSP $pno 1 > /dev/null 2>&1 &
-  timeout -k 0 -s SIGUSR1 3s ./testOnDemandRTSPServer $pno > /dev/null 2>&1
+  timeout -k 0 -s SIGUSR1 1s ./testOnDemandRTSPServer $pno > /dev/null 2>&1
 
   wait
   count=$(expr $count + 1)
   rem=$(expr $count % $step)
   if [ "$rem" != "0" ]; then continue; fi
-  cov_data=$(gcovr -r .. -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-parse-errors=suspicious_hits.warn_once_per_file -r .. -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)
@@ -77,7 +77,7 @@ done
 if [[ $step -gt 1 ]]
 then
   time=$(stat -c %Y $f)
-  cov_data=$(gcovr -r .. -s | grep "[lb][a-z]*:")
+  cov_data=$(gcovr --gcov-ignore-parse-errors=suspicious_hits.warn_once_per_file -r .. -s | grep "[lb][a-z]*:")
   l_per=$(echo "$cov_data" | grep lines | cut -d" " -f2 | rev | cut -c2- | rev)
   l_abs=$(echo "$cov_data" | grep lines | cut -d" " -f3 | cut -c2-)
   b_per=$(echo "$cov_data" | grep branch | cut -d" " -f2 | rev | cut -c2- | rev)

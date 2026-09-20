@@ -11,7 +11,7 @@ strstr() {
   return 0
 }
 
-#Network deamons needed by forked-daapd
+#Network deamons needed by owntone
 sudo /etc/init.d/dbus start
 sudo /etc/init.d/avahi-daemon start
 
@@ -30,6 +30,8 @@ then
 fi
 
 #Commands for afl-based fuzzers (e.g., aflnet, aflnwe)
+#Commands for afl-based fuzzers (e.g., aflnet, aflnwe) -- HNPFuzzer carries no
+#"afl" substring, so it needs the explicit test.
 if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
 
   # Run fuzzer-specific commands (if any)
@@ -37,19 +39,24 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
     source ${WORKDIR}/run-${FUZZER}
   fi
 
-  TARGET_DIR=${TARGET_DIR:-"forked-daapd"}
+  TARGET_DIR=${TARGET_DIR:-"owntone"}
   INPUTS=${INPUTS:-${WORKDIR}"/in-daap"}
 
   #Step-1. Do Fuzzing
   #Move to fuzzing folder
   cd $WORKDIR
-  
+
+  mkdir $OUTDIR
   if $(strstr $FUZZER "HNPFuzzer"); then
-    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N tcp://127.0.0.1/3689 $OPTIONS ${WORKDIR}/${TARGET_DIR}/src/forked-daapd -d 0 -c ${WORKDIR}/forked-daapd.conf -f
+    # HNPFuzzer hands the message buffers to the target over shared
+    # memory (sock2shm.so is LD_PRELOAD-ed into it), which is what lets
+    # a resident server be reused across test cases.
+    AFL_PRELOAD=/home/ubuntu/${FUZZER}/sock2shm.so timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N tcp://127.0.0.1/3689 $OPTIONS ${WORKDIR}/${TARGET_DIR}/src/owntone -d 0 -c ${WORKDIR}/owntone.conf -f > ${OUTDIR}/fuzzing.out 2>&1
   else
-    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N tcp://127.0.0.1/3689 $OPTIONS ${WORKDIR}/${TARGET_DIR}/src/forked-daapd -d 0 -c ${WORKDIR}/forked-daapd.conf -f
+    timeout -k 0 --preserve-status $TIMEOUT /home/ubuntu/${FUZZER}/afl-fuzz -d -i ${INPUTS} -o $OUTDIR -N tcp://127.0.0.1/3689 $OPTIONS ${WORKDIR}/${TARGET_DIR}/src/owntone -d 0 -c ${WORKDIR}/owntone.conf -f > ${OUTDIR}/fuzzing.out 2>&1
   fi
-  
+
+
   STATUS=$?
 
   #Step-2. Collect code coverage over time
@@ -60,13 +67,13 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
   if [ $FUZZER = "aflnwe" ]; then
-    cov_script ${WORKDIR}/${OUTDIR}/ 3689 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 0
+    cov_script ${WORKDIR}/${OUTDIR}/ 3689 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 0 > ${WORKDIR}/${OUTDIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${OUTDIR}/ 3689 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 1
+    cov_script ${WORKDIR}/${OUTDIR}/ 3689 ${SKIPCOUNT} ${WORKDIR}/${OUTDIR}/cov_over_time.csv 1 > ${WORKDIR}/${OUTDIR}/cov.out 2>&1
   fi
 
-  cd $WORKDIR/forked-daapd-gcov
-  gcovr -r . --html --html-details -o index.html
+  cd $WORKDIR/owntone-gcov
+  gcovr --gcov-ignore-errors=no_working_dir_found --gcov-ignore-parse-errors=negative_hits.warn_once_per_file --merge-mode-functions separate -r . --html --html-details -o index.html
   mkdir ${WORKDIR}/${OUTDIR}/cov_html/
   cp *.html ${WORKDIR}/${OUTDIR}/cov_html/
 

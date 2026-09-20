@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pkill -F /var/lock/exim.pid
+rm -rf /var/spool/exim/log/* /var/mail/ubuntu

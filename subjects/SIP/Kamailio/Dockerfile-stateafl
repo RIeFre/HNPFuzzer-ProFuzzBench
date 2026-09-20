@@ -1,5 +1,4 @@
-FROM kamailio
-
+FROM hnp-kamailio
 # Use ubuntu as default username
 USER ubuntu
 WORKDIR /home/ubuntu
@@ -26,9 +25,9 @@ ENV PATH=${STATEAFL}:${PATH}
 
 # Dedicated instrumented version for StateAFL
 RUN cd $WORKDIR && \
-    git clone https://github.com/kamailio/kamailio.git kamailio-stateafl && \
+    git clone --depth 1 --branch 6.1.4 https://github.com/kamailio/kamailio.git kamailio-stateafl && \
     cd kamailio-stateafl && \
-    git checkout 2648eb3 && \
+    test "$(git rev-parse HEAD)" = "8ba64657f3614cf8c0703e78905486ce9837df20" && \
     patch -p1 < $WORKDIR/kamailio.patch && \
     CC=${STATEAFL}/afl-clang-fast make MEMPKG=sys cfg && \
     CC=${STATEAFL}/afl-clang-fast make all $MAKE_OPT

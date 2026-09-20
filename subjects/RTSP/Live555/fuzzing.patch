@@ -1,9 +1,9 @@
 diff --git a/config.linux b/config.linux
-index 67cad1e..88ed294 100644
+index 8c4a926..00983e9 100644
 --- a/config.linux
 +++ b/config.linux
 @@ -1,12 +1,12 @@
- COMPILE_OPTS =		$(INCLUDES) -I. -O2 -DSOCKLEN_T=socklen_t -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DALLOW_RTSP_SERVER_PORT_REUSE=1
+ COMPILE_OPTS =		$(INCLUDES) -I/usr/local/include -I. -O2 -DSOCKLEN_T=socklen_t -D_LARGEFILE_SOURCE=1 -D_FILE_OFFSET_BITS=64 -DALLOW_RTSP_SERVER_PORT_REUSE=1
  C =			c
 -C_COMPILER =		cc
 +C_COMPILER =		afl-clang-fast
@@ -11,7 +11,7 @@ index 67cad1e..88ed294 100644
  CPP =			cpp
 -CPLUSPLUS_COMPILER =	c++
 +CPLUSPLUS_COMPILER =	afl-clang-fast++
- CPLUSPLUS_FLAGS =	$(COMPILE_OPTS) -Wall -DBSD=1 $(CPPFLAGS) $(CXXFLAGS)
+ CPLUSPLUS_FLAGS =	$(COMPILE_OPTS) -std=c++20 -Wall -DBSD=1 $(CPPFLAGS) $(CXXFLAGS)
  OBJ =			o
 -LINK =			c++ -o
 +LINK =			afl-clang-fast++ -o
@@ -19,23 +19,23 @@ index 67cad1e..88ed294 100644
  CONSOLE_LINK_OPTS =	$(LINK_OPTS)
  LIBRARY_LINK =		ar cr 
 diff --git a/liveMedia/GenericMediaServer.cpp b/liveMedia/GenericMediaServer.cpp
-index 4690516..b1d2bf3 100644
+index fc5d503..978f47e 100644
 --- a/liveMedia/GenericMediaServer.cpp
 +++ b/liveMedia/GenericMediaServer.cpp
-@@ -319,7 +319,7 @@ GenericMediaServer::ClientSession* GenericMediaServer::createNewClientSessionWit
-   // (it will be encoded as a 8-digit hex number).  (We avoid choosing session id 0,
-   // because that has a special use by some servers.)
+@@ -415,7 +415,7 @@ GenericMediaServer::ClientSession* GenericMediaServer::createNewClientSessionWit
    do {
--    sessionId = (u_int32_t)our_random32();
+     struct timeval timeNow;
+     gettimeofday(&timeNow, NULL);
+-    sessionId = (u_int32_t)(our_random32() ^ timeNow.tv_sec ^ timeNow.tv_usec);
 +    sessionId = (u_int32_t)8888;
      snprintf(sessionIdStr, sizeof sessionIdStr, "%08X", sessionId);
-   } while (sessionId == 0 || lookupClientSession(sessionIdStr) != NULL);
- 
+   } while (sessionId == 0 || sessionId == fPreviousClientSessionId
+ 	   || lookupClientSession(sessionIdStr) != NULL);
 diff --git a/liveMedia/RTSPServer.cpp b/liveMedia/RTSPServer.cpp
-index 87d723c..4ecc812 100644
+index b0d1883..eb41afc 100644
 --- a/liveMedia/RTSPServer.cpp
 +++ b/liveMedia/RTSPServer.cpp
-@@ -1423,7 +1423,7 @@ void RTSPServer::RTSPClientSession
+@@ -1708,7 +1708,7 @@ void RTSPServer::RTSPClientSession
        switch (streamingMode) {
            case RTP_UDP: {
  	    snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
@@ -43,8 +43,8 @@ index 87d723c..4ecc812 100644
 +		     "RTSP/1.0 201 OK\r\n"
  		     "CSeq: %s\r\n"
  		     "%s"
- 		     "Transport: RTP/AVP;multicast;destination=%s;source=%s;port=%d-%d;ttl=%d\r\n"
-@@ -1441,7 +1441,7 @@ void RTSPServer::RTSPClientSession
+ 		     "Transport: RTP/%s;multicast;destination=%s;source=%s;port=%d-%d;ttl=%d\r\n"
+@@ -1727,7 +1727,7 @@ void RTSPServer::RTSPClientSession
  	  }
            case RAW_UDP: {
  	    snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
@@ -53,7 +53,7 @@ index 87d723c..4ecc812 100644
  		     "CSeq: %s\r\n"
  		     "%s"
  		     "Transport: %s;multicast;destination=%s;source=%s;port=%d;ttl=%d\r\n"
-@@ -1457,7 +1457,7 @@ void RTSPServer::RTSPClientSession
+@@ -1743,7 +1743,7 @@ void RTSPServer::RTSPClientSession
        switch (streamingMode) {
            case RTP_UDP: {
  	    snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
@@ -61,8 +61,8 @@ index 87d723c..4ecc812 100644
 +		     "RTSP/1.0 201 OK\r\n"
  		     "CSeq: %s\r\n"
  		     "%s"
- 		     "Transport: RTP/AVP;unicast;destination=%s;source=%s;client_port=%d-%d;server_port=%d-%d\r\n"
-@@ -1473,7 +1473,7 @@ void RTSPServer::RTSPClientSession
+ 		     "Transport: RTP/%s;unicast;destination=%s;source=%s;client_port=%d-%d;server_port=%d-%d\r\n"
+@@ -1760,7 +1760,7 @@ void RTSPServer::RTSPClientSession
  	      ourClientConnection->handleCmd_unsupportedTransport();
  	    } else {
  	      snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
@@ -71,7 +71,7 @@ index 87d723c..4ecc812 100644
  		       "CSeq: %s\r\n"
  		       "%s"
  		       "Transport: RTP/AVP/TCP;unicast;destination=%s;source=%s;interleaved=%d-%d\r\n"
-@@ -1487,7 +1487,7 @@ void RTSPServer::RTSPClientSession
+@@ -1774,7 +1774,7 @@ void RTSPServer::RTSPClientSession
  	  }
            case RAW_UDP: {
  	    snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
@@ -80,7 +80,7 @@ index 87d723c..4ecc812 100644
  		     "CSeq: %s\r\n"
  		     "%s"
  		     "Transport: %s;unicast;destination=%s;source=%s;client_port=%d;server_port=%d\r\n"
-@@ -1582,7 +1582,7 @@ void RTSPServer::RTSPClientSession
+@@ -1870,7 +1870,7 @@ void RTSPServer::RTSPClientSession
      }
    }
    
@@ -89,7 +89,7 @@ index 87d723c..4ecc812 100644
    
    // Optimization: If all subsessions have now been torn down, then we know that we can reclaim our object now.
    // (Without this optimization, however, this object would still get reclaimed later, as a result of a 'liveness' timeout.)
-@@ -1790,7 +1790,7 @@ void RTSPServer::RTSPClientSession
+@@ -2088,7 +2088,7 @@ void RTSPServer::RTSPClientSession
    
    // Fill in the response:
    snprintf((char*)ourClientConnection->fResponseBuffer, sizeof ourClientConnection->fResponseBuffer,
@@ -98,7 +98,7 @@ index 87d723c..4ecc812 100644
  	   "CSeq: %s\r\n"
  	   "%s"
  	   "%s"
-@@ -1819,7 +1819,7 @@ void RTSPServer::RTSPClientSession
+@@ -2120,7 +2120,7 @@ void RTSPServer::RTSPClientSession
      }
    }
    
@@ -107,7 +107,7 @@ index 87d723c..4ecc812 100644
  }
  
  void RTSPServer::RTSPClientSession
-@@ -1828,7 +1828,7 @@ void RTSPServer::RTSPClientSession
+@@ -2129,7 +2129,7 @@ void RTSPServer::RTSPClientSession
    // By default, we implement "GET_PARAMETER" just as a 'keep alive', and send back a dummy response.
    // (If you want to handle "GET_PARAMETER" properly, you can do so by defining a subclass of "RTSPServer"
    // and "RTSPServer::RTSPClientSession", and then reimplement this virtual function in your subclass.)
@@ -116,7 +116,7 @@ index 87d723c..4ecc812 100644
  }
  
  void RTSPServer::RTSPClientSession
-@@ -1837,7 +1837,7 @@ void RTSPServer::RTSPClientSession
+@@ -2141,7 +2141,7 @@ void RTSPServer::RTSPClientSession
    // By default, we implement "SET_PARAMETER" just as a 'keep alive', and send back an empty response.
    // (If you want to handle "SET_PARAMETER" properly, you can do so by defining a subclass of "RTSPServer"
    // and "RTSPServer::RTSPClientSession", and then reimplement this virtual function in your subclass.)
@@ -126,15 +126,38 @@ index 87d723c..4ecc812 100644
  
  GenericMediaServer::ClientConnection*
 diff --git a/testProgs/testOnDemandRTSPServer.cpp b/testProgs/testOnDemandRTSPServer.cpp
-index 6bf44c1..f59c861 100644
+index 282c0e2..b5a1468 100644
 --- a/testProgs/testOnDemandRTSPServer.cpp
 +++ b/testProgs/testOnDemandRTSPServer.cpp
-@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
- #endif
- 
-   // Create the RTSP server:
+@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
+   RTSPServer* rtspServer = RTSPServer::createNew(*env, 322, authDB);
+ #else
+   // Serve regular RTSP (over a TCP connection):
 -  RTSPServer* rtspServer = RTSPServer::createNew(*env, 8554, authDB);
 +  RTSPServer* rtspServer = RTSPServer::createNew(*env, atoi(argv[1]), authDB);
+ #endif
    if (rtspServer == NULL) {
      *env << "Failed to create RTSP server: " << env->getResultMsg() << "\n";
-     exit(1);
+diff --git a/groupsock/GroupsockHelper.cpp b/groupsock/GroupsockHelper.cpp
+index e02acd9..ee93e44 100644
+--- a/groupsock/GroupsockHelper.cpp
++++ b/groupsock/GroupsockHelper.cpp
+@@ -980,14 +980,10 @@ void getOurIPAddresses(UsageEnvironment& env) {
+       env.setResultMsg("This computer does not have a valid IP (v4 or v6) address!");
+     }
+ 
+-    // Use our newly-discovered IP addresses, and the current time,
+-    // to initialize the random number generator's seed:
+-    struct timeval timeNow;
+-    gettimeofday(&timeNow, NULL);
+-    unsigned seed = _ourIPv4Address^timeNow.tv_sec^timeNow.tv_usec;
+-    for (unsigned i = 0; i < 16; i += 4) {
+-      seed ^= (_ourIPv6Address[i]<<24)|(_ourIPv6Address[i+1]<<16)|(_ourIPv6Address[i+2]<<8)|_ourIPv6Address[i+3];
+-    }
++    // fuzzing.patch: seed the random number generator with a constant
++    // (upstream mixes in gettimeofday), so every run produces the same
++    // session ids / SSRCs / MIKEY keys and the coverage bitmap stays stable
++    unsigned seed = 8888;
+     our_srandom(seed);
+ }
+ 
