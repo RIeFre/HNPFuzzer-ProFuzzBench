@@ -88,13 +88,13 @@ case $target in
 				run_args+="-K"
 			fi
 			if [[ $Fuzzer == "HNPFuzzer" ]]; then
-				options="-P DNS -t 1000 -m none -D 10000 -q 3 -s 3 -E ${run_args}"
+				options="-P DNS -t 1000 -m none -D 100000 -q 3 -s 3 -E ${run_args}"
 			elif [[ $Fuzzer == "aflnet" ]]; then
-				options="-P DNS -D 10000 -K"
+				options="-P DNS -D 100000 -K"
 			elif [[ $Fuzzer == "aflnwe" ]]; then
 				options="-D 10000 -K"
 			elif [[ $Fuzzer == "stateafl" ]]; then
-				options="-P DNS -t 5000 -m none -D 10000 -q 3 -s 3 -E -K"
+				options="-P DNS -t 5000 -m none -D 100000 -q 3 -s 3 -E -K"
 			else
 				echo "Unknown fuzzer $Fuzzer"
 				exit 0
