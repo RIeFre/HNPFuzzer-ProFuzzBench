@@ -42,39 +42,19 @@ if $(strstr $FUZZER "afl") || $(strstr $FUZZER "HNPFuzzer"); then
   #Move to gcov folder
   cd $WORKDIR/LightFTP-gcov/Source/Release
 
-  # AFL++ (and therefore hspfuzzer) always nests one directory per fuzzing
-  # instance under -o: out-<target>-hspfuzzer/default/{queue,crashes,...}.
-  # AFLNet/aflnwe write their queue straight into out-<target>-<fuzzer>/.
-  if [ "$FUZZER" = "hspfuzzer" ]; then
-    FUZZ_DIR="${OUTDIR}/default"
-  else
-    FUZZ_DIR="$OUTDIR"
-  fi
-
   #The last argument passed to cov_script should be 0 if the fuzzer is afl/nwe and it should be 1 if the fuzzer is based on aflnet
   #0: the test case is a concatenated message sequence -- there is no message boundary
   #1: the test case is a structured file keeping several request messages
-  # hspfuzzer only ever produces queue/ (it has no replayable-queue/), so it
-  # joins aflnwe on the concatenated-message path.
-  if [ "$FUZZER" = "aflnwe" ] || [ "$FUZZER" = "hspfuzzer" ]; then
-    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/ 2100 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_over_time.csv 0 > ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov.out 2>&1
+  if [ "$FUZZER" = "aflnwe" ]; then
+    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/ 2100 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv 0 > ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov.out 2>&1
   else
-    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/ 2100 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_over_time.csv 1 > ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov.out 2>&1
+    cov_script ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/ 2100 ${SKIPCOUNT} ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv 1 > ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov.out 2>&1
   fi
 
   gcovr -r .. --html --html-details -o index.html
-  mkdir ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_html/
-  cp *.html ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_html/
+  mkdir ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_html/
+  cp *.html ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_html/
 
-  # profuzzbench_generate_csv.sh extracts out-<target>-<fuzzer>/cov_over_time.csv
-  # from the tarball, so for hspfuzzer (whose results sit one level deeper in
-  # default/) the two artifacts are also copied up to the OUTDIR root.
-  if [ "$FUZZER" = "hspfuzzer" ]; then
-    cp ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_over_time.csv \
-       ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_over_time.csv
-    cp -r ${WORKDIR}/${TARGET_DIR}/Source/Release/${FUZZ_DIR}/cov_html \
-       ${WORKDIR}/${TARGET_DIR}/Source/Release/${OUTDIR}/cov_html
-  fi
 
   # Fail loudly when the replay collected nothing: generate_csv.sh would
   # otherwise emit a header-only CSV and the whole run would look successful.
